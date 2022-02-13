@@ -17,3 +17,4 @@ pub use scheduler::Scheduler;
 pub use base_task::BaseTask;
 pub use result::Result;
 pub use scheduler_task::SchedulerTask;
+pub use tasks::FunctionTask;
