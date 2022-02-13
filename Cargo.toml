@@ -1,5 +1,5 @@
 [package]
-name = "scheduler-rs"
+name = "rs-flow"
 version = "0.1.0"
 edition = "2021"
 
