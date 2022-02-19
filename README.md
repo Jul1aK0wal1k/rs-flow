@@ -13,3 +13,6 @@ or install it by adding
 [dependencies]
 rs-flow = { git = "https://github.com/Jul1aK0wal1k/rs-flow.git"}
 ```
+
+## Features
+__[WIP]__ `custom_tasks` - allows you to manually implement the internal interface that the `scheduler`.
