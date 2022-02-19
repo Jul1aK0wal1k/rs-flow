@@ -1,36 +1,45 @@
+use crate::{core::_SchedulerTask, SchedulerTask};
+use chrono::{DateTime, Duration, Utc};
 use std::sync::Arc;
-
-use crate::{SchedulerTask, core::_SchedulerTask};
+use thiserror::Error;
 
 const LOG_TARGET: &'static str = "base_task";
 
 pub(crate) type _TaskId = String;
+
+pub type BaseTaskResult<T> = std::result::Result<T, BaseTaskError>;
+
+#[derive(Error, Debug)]
+pub enum BaseTaskError {
+    #[error("Datetime parse error, reason {0}")]
+    FailedDateTimeParse(String),
+}
 
 #[derive(Clone)]
 pub struct BaseTask {
     pub id: _TaskId,
     pub name: String,
     task: Arc<Box<(dyn SchedulerTask + Send + Sync)>>,
-    pub every: chrono::Duration,
-    pub start_from: Option<chrono::DateTime<chrono::Utc>>,
-    pub last_execution: Option<chrono::DateTime<chrono::Utc>>,
+    every: Duration,
+    start_from: Option<DateTime<Utc>>,
+    last_execution: Option<DateTime<Utc>>,
 }
 
 impl BaseTask {
     pub fn new(
         name: String,
         task: Box<(dyn SchedulerTask + Send + Sync)>,
-        every: chrono::Duration,
-        start_from: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Self {
-        BaseTask {
+        every: Duration,
+        start_from: Option<DateTime<Utc>>,
+    ) -> BaseTaskResult<Self> {
+        Ok(BaseTask {
             id: uuid::Uuid::new_v4().to_string(),
             name,
             task: Arc::new(task),
             every,
             start_from,
             last_execution: None,
-        }
+        })
     }
 }
 
@@ -44,13 +53,13 @@ impl SchedulerTask for BaseTask {
 }
 
 impl _SchedulerTask for BaseTask {
-    type TimeZone = chrono::Utc;
+    type TimeZone = Utc;
 
-    fn last_execution(&self) -> Option<chrono::DateTime<Self::TimeZone>> {
+    fn last_execution(&self) -> Option<DateTime<Self::TimeZone>> {
         self.last_execution
     }
 
-    fn next_execution(&self) -> Option<chrono::DateTime<Self::TimeZone>> {
+    fn next_execution(&self) -> Option<DateTime<Self::TimeZone>> {
         match self.last_execution {
             Some(time) => time.checked_add_signed(self.every),
             None => match self.start_from {
@@ -60,5 +69,3 @@ impl _SchedulerTask for BaseTask {
         }
     }
 }
-
-

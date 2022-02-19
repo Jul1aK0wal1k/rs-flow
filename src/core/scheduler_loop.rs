@@ -2,7 +2,7 @@ use log::info;
 use thiserror::Error;
 use tokio::sync::mpsc;
 
-use crate::{base_task::_TaskId, core::_SchedulerTask, BaseTask, SchedulerTask};
+use crate::{base_task::BaseTask, base_task::_TaskId, core::_SchedulerTask, SchedulerTask};
 
 const LOG_TARGET: &'static str = "scheduler_loop";
 

@@ -1,10 +1,12 @@
 use crate::{
     base_task::_TaskId,
     core::{_LoopMsg, _SchedulerLoop},
-    BaseTask, SchedulerTask,
+    time::TimeSpecError,
+    base_task::BaseTask, SchedulerTask, StartFrom,
 };
 
-use std::panic;
+use chrono::{Date, DateTime, Duration, Utc};
+use std::{panic, time};
 use thiserror::Error;
 use tokio::{sync::mpsc, task};
 
@@ -15,6 +17,8 @@ pub type SchedulerResult<T> = std::result::Result<T, SchedulerError>;
 
 #[derive(Error, Debug)]
 pub enum SchedulerError {
+    #[error("Couldn't create task, reason {0}")]
+    FailedTaskCreation(String),
     #[error("Loop has not been started, please call start/1 before calling stop/0")]
     LoopNotStarted,
     #[error("A task inside the loop has paniced! Details: {0}")]
@@ -26,11 +30,11 @@ pub enum SchedulerError {
 pub struct Scheduler {
     loop_handle: Option<task::JoinHandle<()>>,
     channel_sender: Option<mpsc::Sender<_LoopMsg>>,
-    heartbeat_interval: std::time::Duration,
+    heartbeat_interval: time::Duration,
 }
 
 impl Scheduler {
-    pub fn new(heartbeat_interval: std::time::Duration) -> Self {
+    pub fn new(heartbeat_interval: time::Duration) -> Self {
         Scheduler {
             loop_handle: None,
             channel_sender: None,
@@ -42,11 +46,17 @@ impl Scheduler {
         &self,
         task: Box<(dyn SchedulerTask + panic::RefUnwindSafe + panic::UnwindSafe + Sync + Send)>,
         name: String,
-        every: chrono::Duration,
-        start_from: Option<chrono::DateTime<chrono::Utc>>,
+        every: time::Duration,
+        start_from: StartFrom,
     ) -> SchedulerResult<()> {
-        let task = BaseTask::new(name, task, every, start_from);
-        self._send_msg(_LoopMsg::AddTask(task)).await
+        let every_ = Duration::from_std(every)
+            .map_err(|err| SchedulerError::FailedTaskCreation(err.to_string()))?;
+        let from_: DateTime<Utc> = start_from
+            .try_into()
+            .map_err(|err: TimeSpecError| SchedulerError::FailedTaskCreation(err.to_string()))?;
+        let task_ = BaseTask::new(name, task, every_, Some(from_))
+            .map_err(|err| SchedulerError::FailedTaskCreation(err.to_string()))?;
+        self._send_msg(_LoopMsg::AddTask(task_)).await
     }
 
     pub async fn remove_task(&self, id: _TaskId) -> SchedulerResult<()> {
@@ -96,6 +106,7 @@ impl Scheduler {
 mod tests {
     use crate::tasks::FunctionTask;
     use crate::Scheduler;
+    use std::time;
     #[tokio::test]
     async fn scheduler_start_test() {
         let mut scheduler = Scheduler::new(std::time::Duration::new(1, 0));
@@ -113,7 +124,8 @@ mod tests {
 
     #[tokio::test]
     async fn scheduler_add_task_test() {
-        let scheduler = Scheduler::new(std::time::Duration::new(1, 0));
+        let mut scheduler = Scheduler::new(std::time::Duration::new(1, 0));
+        assert!(scheduler.start().is_ok());
         let function_task = FunctionTask::new(move || {
             let mut y = String::from("foo");
             let t = String::from("bar");
@@ -121,8 +133,10 @@ mod tests {
             assert!(*y == String::from("foobar"))
         });
         let name = String::from("task_name");
-        let every = chrono::Duration::seconds(1);
-        let result = scheduler.add_task(Box::new(function_task), name, every, None).await;
-        assert!(result.is_ok());
+        let every = time::Duration::from_secs(1);
+        let result = scheduler
+            .add_task(Box::new(function_task), name, every, crate::StartFrom::Now)
+            .await;
+        assert!(result.is_ok())
     }
 }
