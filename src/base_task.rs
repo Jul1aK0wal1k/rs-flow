@@ -1,4 +1,5 @@
 use crate::{core::_SchedulerTask, SchedulerTask};
+use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use std::sync::Arc;
 use thiserror::Error;
@@ -43,9 +44,10 @@ impl BaseTask {
     }
 }
 
+#[async_trait]
 impl SchedulerTask for BaseTask {
-    fn execute(&self) -> std::result::Result<(), std::io::Error> {
-        if let Err(err) = self.task.execute() {
+    async fn execute(&self) -> std::result::Result<(), std::io::Error> {
+        if let Err(err) = self.task.execute().await {
             log::warn!(target: LOG_TARGET, "In: {} {:?}", self.name, err);
         }
         Ok(())

@@ -1,5 +1,7 @@
+use async_trait::async_trait;
 use std::io::Result;
 
+#[async_trait]
 pub trait SchedulerTask {
-    fn execute(&self) -> Result<()>;
+    async fn execute(&self) -> Result<()>;
 }

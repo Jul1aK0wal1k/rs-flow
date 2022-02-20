@@ -1,4 +1,5 @@
-use log::info;
+use futures::{stream::FuturesUnordered, StreamExt};
+use log::{info, warn};
 use thiserror::Error;
 use tokio::sync::mpsc;
 
@@ -70,17 +71,30 @@ impl _SchedulerLoop {
             let time_diff = self.last_heartbeat - time_now;
             let should_tick = time_diff > self.heartbeat_interval;
             if should_tick {
-                let tasks_to_run = self.tasks.iter().filter(|x| {
-                    let next_execution = x.next_execution();
-                    let last_execution = x.last_execution();
-                    last_execution.is_none()
-                        || (next_execution.is_some() && time_now >= next_execution.unwrap())
-                });
-
-                let _result = tasks_to_run.map(|task| {
-                    task.execute().ok();
-                });
-
+                self.tasks
+                    .iter()
+                    .filter(|x| {
+                        let next_execution = x.next_execution();
+                        let last_execution = x.last_execution();
+                        last_execution.is_none()
+                            || (next_execution.is_some() && time_now >= next_execution.unwrap())
+                    })
+                    .map(|t| t.execute())
+                    .collect::<FuturesUnordered<_>>()
+                    .collect::<Vec<_>>()
+                    .await
+                    .iter()
+                    .zip(self.tasks.iter())
+                    .for_each(|(r, t)| {
+                        if let Err(error) = r {
+                            warn!(
+                                target: LOG_TARGET,
+                                "Task {0} failed, reason: {1}",
+                                t.name,
+                                error.to_string()
+                            );
+                        }
+                    });
                 {
                     self.last_heartbeat = time_now;
                 }
