@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::SchedulerTask;
 
-pub struct FunctionTask<Func: Fn() -> () + Sync + Send> {
+pub struct FunctionTask<Func: (Fn() -> ()) + Sync + Send> {
     func: Func,
 }
 
