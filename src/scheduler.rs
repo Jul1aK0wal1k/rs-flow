@@ -1,6 +1,6 @@
 use crate::{
     base_task::BaseTask,
-    base_task::_TaskId,
+    base_task::TaskId,
     core::{_LoopMsg, _SchedulerLoop},
     time::TimeSpecError,
     SchedulerTask, StartFrom,
@@ -49,18 +49,19 @@ impl Scheduler {
         name: String,
         every: time::Duration,
         start_from: StartFrom,
-    ) -> SchedulerResult<()> {
+    ) -> SchedulerResult<TaskId> {
+        let id = uuid::Uuid::new_v4().to_string();
         let every_ = Duration::from_std(every)
             .map_err(|err| SchedulerError::FailedTaskCreation(err.to_string()))?;
         let from_: DateTime<Utc> = start_from
             .try_into()
             .map_err(|err: TimeSpecError| SchedulerError::FailedTaskCreation(err.to_string()))?;
-        let task_ = BaseTask::new(name, task, every_, Some(from_))
+        let task_ = BaseTask::new(id.clone(), name, task, every_, Some(from_))
             .map_err(|err| SchedulerError::FailedTaskCreation(err.to_string()))?;
-        self._send_msg(_LoopMsg::AddTask(task_)).await
+        self._send_msg(_LoopMsg::AddTask(task_)).await.map(|_| id)
     }
 
-    pub async fn remove_task(&self, id: _TaskId) -> SchedulerResult<()> {
+    pub async fn remove_task(&self, id: TaskId) -> SchedulerResult<()> {
         self._send_msg(_LoopMsg::RemoveTask(id)).await
     }
 

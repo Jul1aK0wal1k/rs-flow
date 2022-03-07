@@ -3,7 +3,11 @@ use log::{info, warn};
 use thiserror::Error;
 use tokio::sync::mpsc;
 
-use crate::{base_task::BaseTask, base_task::_TaskId, core::_SchedulerTask, SchedulerTask};
+use crate::{
+    base_task::{BaseTask, TaskId},
+    core::_SchedulerTask,
+    SchedulerTask,
+};
 
 const LOG_TARGET: &'static str = "scheduler_loop";
 
@@ -21,7 +25,7 @@ pub(crate) enum _LoopError {
 
 pub(crate) enum _LoopMsg {
     AddTask(BaseTask),
-    RemoveTask(_TaskId),
+    RemoveTask(TaskId),
 }
 
 pub(crate) struct _SchedulerLoop {
@@ -48,7 +52,7 @@ impl _SchedulerLoop {
         self.tasks.push(task);
     }
 
-    pub(crate) fn remove_task(&mut self, id: _TaskId) {
+    pub(crate) fn remove_task(&mut self, id: TaskId) {
         self.tasks.retain(|t| t.id != id);
     }
 
