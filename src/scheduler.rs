@@ -6,8 +6,8 @@ use crate::{
     SchedulerTask, StartFrom,
 };
 
-use chrono::{Date, DateTime, Duration, Utc};
-use std::{panic, time};
+use chrono::{DateTime, Duration, Utc};
+use std::time;
 use thiserror::Error;
 use tokio::{sync::mpsc, task};
 
@@ -28,6 +28,8 @@ pub enum SchedulerError {
     ChannelReceiverClosed,
 }
 
+type SchedulerTaskType = dyn SchedulerTask + Sync + Send;
+
 pub struct Scheduler {
     loop_handle: Option<task::JoinHandle<()>>,
     channel_sender: Option<mpsc::Sender<_LoopMsg>>,
@@ -45,7 +47,7 @@ impl Scheduler {
 
     pub async fn add_task(
         &self,
-        task: Box<(dyn SchedulerTask + panic::RefUnwindSafe + panic::UnwindSafe + Sync + Send)>,
+        task: Box<SchedulerTaskType>,
         name: String,
         every: time::Duration,
         start_from: StartFrom,
