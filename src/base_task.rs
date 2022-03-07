@@ -6,7 +6,7 @@ use thiserror::Error;
 
 const LOG_TARGET: &'static str = "base_task";
 
-pub(crate) type _TaskId = String;
+pub type TaskId = String;
 
 pub type BaseTaskResult<T> = std::result::Result<T, BaseTaskError>;
 
@@ -18,7 +18,7 @@ pub enum BaseTaskError {
 
 #[derive(Clone)]
 pub struct BaseTask {
-    pub id: _TaskId,
+    pub id: TaskId,
     pub name: String,
     task: Arc<Box<(dyn SchedulerTask + Send + Sync)>>,
     every: Duration,
@@ -28,13 +28,14 @@ pub struct BaseTask {
 
 impl BaseTask {
     pub fn new(
+        id: String,
         name: String,
         task: Box<(dyn SchedulerTask + Send + Sync)>,
         every: Duration,
         start_from: Option<DateTime<Utc>>,
     ) -> BaseTaskResult<Self> {
         Ok(BaseTask {
-            id: uuid::Uuid::new_v4().to_string(),
+            id,
             name,
             task: Arc::new(task),
             every,
