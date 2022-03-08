@@ -20,6 +20,6 @@ pub use core::_SchedulerTask;
 pub use base_task::{BaseTask, BaseTaskError, BaseTaskResult, TaskId};
 pub use result::Result;
 pub use scheduler::{Scheduler, SchedulerError, SchedulerResult};
-pub use scheduler_task::SchedulerTask;
+pub use scheduler_task::{SchedulerTask, TaskError, TaskResult};
 pub use tasks::FunctionTask;
 pub use time::StartFrom;

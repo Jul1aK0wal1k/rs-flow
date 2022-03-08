@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::SchedulerTask;
+use crate::{scheduler_task::TaskResult, SchedulerTask};
 
 pub struct FunctionTask<Func: (Fn() -> ()) + Sync + Send> {
     func: Func,
@@ -14,7 +14,7 @@ impl<Func: Fn() -> () + Sync + Send> FunctionTask<Func> {
 
 #[async_trait]
 impl<Func: Fn() -> () + Sync + Send> SchedulerTask for FunctionTask<Func> {
-    async fn execute(&self) -> std::io::Result<()> {
+    async fn execute(&self) -> TaskResult {
         (self.func)();
         Ok(())
     }
