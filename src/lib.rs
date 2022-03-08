@@ -17,8 +17,9 @@ mod time;
 #[cfg(feature = "custom_tasks")]
 pub use core::_SchedulerTask;
 
+pub use base_task::{BaseTask, BaseTaskError, BaseTaskResult, TaskId};
 pub use result::Result;
-pub use scheduler::Scheduler;
+pub use scheduler::{Scheduler, SchedulerError, SchedulerResult};
 pub use scheduler_task::SchedulerTask;
 pub use tasks::FunctionTask;
 pub use time::StartFrom;
